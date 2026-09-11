@@ -11,11 +11,18 @@ import { RANDOM_EVENTS } from "@/data/events";
 import { pickColorForSecondPlayer, pickContrastingPair } from "@/lib/game/colorContrast";
 import { buildMissionDeck } from "@/lib/game/missionSelector";
 import { chance, pickOne, todayLabel, uid } from "@/lib/utils/random";
+import {
+  createSeededRandom,
+  generateSessionCode,
+  normalizeSessionCode,
+  seedFromSessionCode,
+} from "@/lib/utils/seed";
 import type {
   CompletedMission,
   GameConfig,
   GameState,
   PhotoMeta,
+  PlayMode,
   PlayerId,
   ScreenId,
 } from "@/types";
@@ -24,19 +31,30 @@ import { GAME_VERSION } from "@/types";
 export function createFreshGame(
   names: { gabri: string; tati: string } = DEFAULT_PLAYER_NAMES,
   config: GameConfig = DEFAULT_CONFIG,
+  options?: {
+    sessionCode?: string;
+    isHost?: boolean;
+    playMode?: PlayMode;
+    localPlayer?: PlayerId | null;
+    restaurantId?: string | null;
+  },
 ): GameState {
-  const [colorGabri, colorTati] = pickContrastingPair();
-  const missionIds = buildMissionDeck();
+  const sessionCode = normalizeSessionCode(options?.sessionCode || generateSessionCode());
+  const sessionSeed = seedFromSessionCode(sessionCode);
+  const random = createSeededRandom(sessionSeed);
+
+  const [colorGabri, colorTati] = pickContrastingPair([], random);
+  const missionIds = buildMissionDeck(random);
   const now = new Date().toISOString();
 
   // Decide if/when color swap happens (after completing mission at index 3..6)
   let colorSwapAtIndex: number | null = null;
-  if (config.colorSwapEnabled && chance(config.colorSwapProbability)) {
-    const options = [];
+  if (config.colorSwapEnabled && chance(config.colorSwapProbability, random)) {
+    const optionsIdx = [];
     for (let i = COLOR_SWAP_MIN_INDEX; i <= COLOR_SWAP_MAX_INDEX; i++) {
-      options.push(i);
+      optionsIdx.push(i);
     }
-    colorSwapAtIndex = pickOne(options);
+    colorSwapAtIndex = pickOne(optionsIdx, random);
   }
 
   return {
@@ -60,6 +78,11 @@ export function createFreshGame(
         score: 0,
       },
     },
+    localPlayer: options?.localPlayer ?? null,
+    playMode: options?.playMode ?? "together",
+    sessionCode,
+    sessionSeed,
+    isHost: options?.isHost ?? true,
     missionIds,
     currentMissionIndex: 0,
     completed: [],
@@ -68,7 +91,7 @@ export function createFreshGame(
     colorSwapPending: false,
     colorSwapAtIndex,
     events: [],
-    restaurantId: null,
+    restaurantId: options?.restaurantId ?? null,
     discardedRestaurantIds: [],
     jointBonus: 0,
     collage: {
@@ -107,6 +130,44 @@ export function updatePlayerNames(
       tati: { ...state.players.tati, name: names.tati.trim() || DEFAULT_PLAYER_NAMES.tati },
     },
   });
+}
+
+export function setLocalPlayer(state: GameState, localPlayer: PlayerId): GameState {
+  return touch({ ...state, localPlayer });
+}
+
+export function setPlayMode(state: GameState, playMode: PlayMode): GameState {
+  return touch({ ...state, playMode });
+}
+
+export function photosForMission(state: GameState, missionIndex: number) {
+  return state.photos.filter((p) => p.missionIndex === missionIndex);
+}
+
+export function hasPlayerPhoto(
+  state: GameState,
+  missionIndex: number,
+  playerId: PlayerId | "both",
+): boolean {
+  return state.photos.some(
+    (p) =>
+      p.missionIndex === missionIndex &&
+      (playerId === "both" ? p.isJoint || p.playerId === "both" : p.playerId === playerId || p.isJoint),
+  );
+}
+
+export function canCompleteMission(state: GameState): boolean {
+  const index = state.currentMissionIndex;
+  const mission = getMissionById(state.missionIds[index]!);
+  if (!mission.requiresPhoto) return true;
+  if (index === 9) {
+    return hasPlayerPhoto(state, index, "both");
+  }
+  if (state.playMode === "together") {
+    return hasPlayerPhoto(state, index, "gabri") && hasPlayerPhoto(state, index, "tati");
+  }
+  const local = state.localPlayer ?? "gabri";
+  return hasPlayerPhoto(state, index, local);
 }
 
 export function assignRevealedColors(state: GameState): GameState {

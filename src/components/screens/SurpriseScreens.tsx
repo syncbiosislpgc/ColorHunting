@@ -54,7 +54,7 @@ export function ReadyScreen({ game }: { game: GameController }) {
         <div className="mt-12 w-full">
           <Button
             className="!bg-[#ffe1c9] !text-[#0c2f36]"
-            onClick={() => game.go("players")}
+            onClick={() => game.go("whoAmI")}
           >
             Empezar
           </Button>

@@ -81,11 +81,15 @@ export interface CollageTemplateDef {
   description: string;
 }
 
+export type PlayMode = "together" | "twoPhones";
+
 export type ScreenId =
   | "welcome"
   | "surpriseOne"
   | "surpriseTwo"
   | "ready"
+  | "whoAmI"
+  | "sessionSetup"
   | "players"
   | "food"
   | "colorGabri"
@@ -155,6 +159,13 @@ export interface GameState {
   updatedAt: string;
   screen: ScreenId;
   players: Record<PlayerId, PlayerState>;
+  /** Quién usa ESTE teléfono */
+  localPlayer: PlayerId | null;
+  /** together = un móvil; twoPhones = código compartido */
+  playMode: PlayMode;
+  sessionCode: string;
+  sessionSeed: number;
+  isHost: boolean;
   missionIds: string[]; // exactly 10: 9 random + final
   currentMissionIndex: number; // 0-9
   completed: CompletedMission[];
@@ -179,7 +190,7 @@ export interface GameState {
   config: GameConfig;
 }
 
-export const STORAGE_KEY = "gabri-tati-adventure-v1";
+export const STORAGE_KEY = "gabri-tati-adventure-v2";
 export const DB_NAME = "gabri-tati-photos";
 export const DB_STORE = "photos";
 export const GAME_VERSION = 1;

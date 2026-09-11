@@ -20,7 +20,9 @@ import {
   SurpriseOneScreen,
   SurpriseTwoScreen,
 } from "@/components/screens/SurpriseScreens";
+import { SessionSetupScreen } from "@/components/screens/SessionSetupScreen";
 import { WelcomeScreen } from "@/components/screens/WelcomeScreen";
+import { WhoAmIScreen } from "@/components/screens/WhoAmIScreen";
 import { useGame } from "@/hooks/useGame";
 
 export function AdventureApp() {
@@ -47,6 +49,8 @@ export function AdventureApp() {
         {screen === "surpriseOne" && <SurpriseOneScreen game={game} />}
         {screen === "surpriseTwo" && <SurpriseTwoScreen game={game} />}
         {screen === "ready" && <ReadyScreen game={game} />}
+        {screen === "whoAmI" && <WhoAmIScreen game={game} />}
+        {screen === "sessionSetup" && <SessionSetupScreen game={game} />}
         {screen === "players" && <PlayersScreen game={game} />}
         {screen === "food" && <FoodRouletteScreen game={game} />}
         {screen === "colorGabri" && <ColorRevealScreen game={game} player="gabri" />}

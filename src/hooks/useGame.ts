@@ -4,15 +4,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DEFAULT_PLAYER_NAMES } from "@/data/config";
 import {
   acknowledgeEvent,
+  addPhotoMeta,
   applyColorSwap,
+  canCompleteMission,
   completeCurrentMission,
   createFreshGame,
   createPhotoId,
-  addPhotoMeta,
   discardRestaurant,
   getActivePlayerForMission,
   rivalryMessage,
   selectRestaurant,
+  setLocalPlayer as setLocalPlayerState,
+  setPlayMode as setPlayModeState,
   setScreen,
   updatePlayerNames,
 } from "@/lib/game/engine";
@@ -25,7 +28,14 @@ import {
   saveNames,
 } from "@/lib/storage/localState";
 import { clearAllPhotos, savePhotoBlob } from "@/lib/storage/photoDb";
-import type { CollageTemplateId, GameState, PlayerId, ScreenId } from "@/types";
+import { unpackSharePayload } from "@/lib/utils/seed";
+import type {
+  CollageTemplateId,
+  GameState,
+  PlayMode,
+  PlayerId,
+  ScreenId,
+} from "@/types";
 
 export function useGame() {
   const [state, setState] = useState<GameState | null>(null);
@@ -45,19 +55,22 @@ export function useGame() {
     setState((prev) => (prev ? updater(prev) : prev));
   }, []);
 
-  const startNew = useCallback((
-    names?: { gabri: string; tati: string },
-    initialScreen: ScreenId = "welcome",
-  ) => {
-    const savedNames = names || loadSavedNames() || DEFAULT_PLAYER_NAMES;
-    saveNames(savedNames);
-    void clearAllPhotos();
-    clearGameState();
-    const fresh = createFreshGame(savedNames);
-    fresh.screen = initialScreen;
-    setState(fresh);
-    setSavedExists(false);
-  }, []);
+  const startNew = useCallback(
+    (
+      names?: { gabri: string; tati: string },
+      initialScreen: ScreenId = "welcome",
+    ) => {
+      const savedNames = names || loadSavedNames() || DEFAULT_PLAYER_NAMES;
+      saveNames(savedNames);
+      void clearAllPhotos();
+      clearGameState();
+      const fresh = createFreshGame(savedNames);
+      fresh.screen = initialScreen;
+      setState(fresh);
+      setSavedExists(false);
+    },
+    [],
+  );
 
   const continueGame = useCallback(() => {
     const saved = loadGameState();
@@ -99,10 +112,7 @@ export function useGame() {
   const finishColorSwap = useCallback(() => {
     patch((s) => {
       const swapped = s.colorSwapTriggered ? s : applyColorSwap(s);
-      return setScreen(
-        { ...swapped, colorSwapPending: false },
-        "mission",
-      );
+      return setScreen({ ...swapped, colorSwapPending: false }, "mission");
     });
   }, [patch]);
 
@@ -121,17 +131,25 @@ export function useGame() {
       await savePhotoBlob(id, blob);
       const index = state.currentMissionIndex;
       const missionId = state.missionIds[index]!;
-      patch((s) =>
-        addPhotoMeta(s, {
-          id,
-          missionId,
-          missionIndex: index,
-          playerId,
-          isJoint,
-          selectedForGabri: playerId === "gabri" || isJoint,
-          selectedForTati: playerId === "tati" || isJoint,
-        }),
-      );
+      patch((s) => {
+        const photos = s.photos.filter((p) => {
+          if (p.missionIndex !== index) return true;
+          if (isJoint) return !(p.isJoint || p.playerId === "both");
+          return p.playerId !== playerId;
+        });
+        return addPhotoMeta(
+          { ...s, photos },
+          {
+            id,
+            missionId,
+            missionIndex: index,
+            playerId,
+            isJoint,
+            selectedForGabri: playerId === "gabri" || isJoint,
+            selectedForTati: playerId === "tati" || isJoint,
+          },
+        );
+      });
       return id;
     },
     [state, patch],
@@ -150,8 +168,12 @@ export function useGame() {
         ...s,
         photos: s.photos.map((p) => {
           if (p.id !== photoId) return p;
-          if (p.isJoint) return { ...p, selectedForGabri: true, selectedForTati: true };
-          if (forPlayer === "gabri") return { ...p, selectedForGabri: !p.selectedForGabri };
+          if (p.isJoint) {
+            return { ...p, selectedForGabri: true, selectedForTati: true };
+          }
+          if (forPlayer === "gabri") {
+            return { ...p, selectedForGabri: !p.selectedForGabri };
+          }
           return { ...p, selectedForTati: !p.selectedForTati };
         }),
         updatedAt: new Date().toISOString(),
@@ -182,7 +204,9 @@ export function useGame() {
         ...s,
         collage: {
           ...s.collage,
-          ...(player === "gabri" ? { gabriGenerated: true } : { tatiGenerated: true }),
+          ...(player === "gabri"
+            ? { gabriGenerated: true }
+            : { tatiGenerated: true }),
         },
         updatedAt: new Date().toISOString(),
       }));
@@ -195,19 +219,75 @@ export function useGame() {
       ...s,
       collage: {
         ...s.collage,
-        gabriPhotoIds: s.photos.filter((p) => p.selectedForGabri).map((p) => p.id),
-        tatiPhotoIds: s.photos.filter((p) => p.selectedForTati).map((p) => p.id),
+        gabriPhotoIds: s.photos
+          .filter((p) => p.selectedForGabri)
+          .map((p) => p.id),
+        tatiPhotoIds: s.photos
+          .filter((p) => p.selectedForTati)
+          .map((p) => p.id),
       },
       updatedAt: new Date().toISOString(),
     }));
   }, [patch]);
+
+  const setLocalPlayer = useCallback(
+    (player: PlayerId) => {
+      patch((s) => setLocalPlayerState(s, player));
+    },
+    [patch],
+  );
+
+  const setPlayMode = useCallback(
+    (mode: PlayMode) => {
+      patch((s) => setPlayModeState(s, mode));
+    },
+    [patch],
+  );
+
+  const joinSession = useCallback(
+    (rawCode: string) => {
+      const { sessionCode, restaurantId } = unpackSharePayload(rawCode);
+      if (!sessionCode) return;
+      const names = {
+        gabri:
+          state?.players.gabri.name ||
+          loadSavedNames()?.gabri ||
+          DEFAULT_PLAYER_NAMES.gabri,
+        tati:
+          state?.players.tati.name ||
+          loadSavedNames()?.tati ||
+          DEFAULT_PLAYER_NAMES.tati,
+      };
+      const localPlayer = state?.localPlayer ?? null;
+      void clearAllPhotos();
+      clearGameState();
+      const fresh = createFreshGame(names, undefined, {
+        sessionCode,
+        isHost: false,
+        playMode: "twoPhones",
+        localPlayer,
+        restaurantId,
+      });
+      fresh.screen = "players";
+      setState(fresh);
+      setSavedExists(false);
+    },
+    [state],
+  );
+
+  const canCompleteCurrent = useCallback(() => {
+    return state ? canCompleteMission(state) : false;
+  }, [state]);
 
   const activePlayer = useMemo(
     () => (state ? getActivePlayerForMission(state) : "both"),
     [state],
   );
 
-  const tease = useMemo(() => (state ? rivalryMessage(state) : null), [state]);
+  const tease = useMemo(
+    () => (state ? rivalryMessage(state) : null),
+    [state],
+  );
 
   return {
     state,
@@ -230,6 +310,10 @@ export function useGame() {
     syncCollageSelection,
     activePlayer,
     tease,
+    setLocalPlayer,
+    setPlayMode,
+    joinSession,
+    canCompleteCurrent,
     patch,
   };
 }

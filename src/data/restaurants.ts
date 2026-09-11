@@ -1,17 +1,16 @@
 import type { RestaurantDef } from "@/types";
 
-/** Opciones de Las Arenas — fácil de ampliar */
+/** Lista fija de sitios — no añadir otros sin pedirselo a Gabri & Tati */
 export function getRestaurantByIdSafe(id: string): RestaurantDef | null {
   return RESTAURANTS.find((r) => r.id === id) ?? null;
 }
 
 export const RESTAURANTS: RestaurantDef[] = [
-  { id: "goiko", name: "Goiko", hint: "Hamburguesa premium" },
+  { id: "goiko", name: "Goiko", hint: "Hamburguesita rica" },
   { id: "kfc", name: "KFC", hint: "Pollo crujiente" },
-  { id: "tgb", name: "TGB", hint: "The Good Burger" },
-  { id: "mcdonalds", name: "McDonald’s", hint: "Clásico rápido" },
-  { id: "montaditos", name: "100 Montaditos", hint: "Para picar" },
-  { id: "burger-king", name: "Burger King", hint: "A la parrilla" },
-  { id: "subway", name: "Subway", hint: "Bocatas a medida" },
-  { id: "pizzahut", name: "Pizza Hut", hint: "Masa y queso" },
+  { id: "turca", name: "Turca", hint: "Döner / turca" },
+  { id: "mcdonalds", name: "McDonald’s", hint: "Clásico" },
+  { id: "splits", name: "El Splits", hint: "El de siempre" },
+  { id: "kebab", name: "Kebab", hint: "El kebab de la zona" },
+  { id: "scooter", name: "Scooter", hint: "Plan scooter" },
 ];
