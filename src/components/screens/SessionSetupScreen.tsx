@@ -69,8 +69,8 @@ export function SessionSetupScreen({ game }: { game: GameController }) {
         {mode === "host" && (
           <div className="mt-6 flex flex-1 flex-col">
             <p className="text-sm opacity-70">
-              Que el otro escanee el QR o use el código. Así las 10 pruebas salen
-              iguales.
+              Que el otro escanee el QR o use el código. La comida la elige el
+              invitado; tú esperarás su respuesta.
             </p>
 
             <div className="mt-5 flex justify-center">
@@ -90,7 +90,7 @@ export function SessionSetupScreen({ game }: { game: GameController }) {
               <Button
                 onClick={() => {
                   game.setPlayMode("twoPhones");
-                  game.go("food");
+                  game.go("waitingFood");
                 }}
               >
                 Seguir como anfitrión 💘

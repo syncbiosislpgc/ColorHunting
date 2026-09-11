@@ -92,6 +92,7 @@ export type ScreenId =
   | "sessionSetup"
   | "players"
   | "food"
+  | "waitingFood"
   | "colorGabri"
   | "colorTati"
   | "briefing"
