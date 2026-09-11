@@ -292,7 +292,9 @@ async function main() {
   });
 
   console.log("3) Restaurantes…");
-  await page.getByRole("button", { name: /Seguir como anfitrión/i }).click();
+  // En dos móviles la comida la elige el invitado; aquí usamos un solo móvil.
+  await page.getByRole("button", { name: /Volver/i }).click();
+  await page.getByRole("button", { name: /Juntos en un móvil/i }).click();
   await page.getByText("¿Dónde comemos?").waitFor();
   const restaurantsPath = path.join(process.cwd(), "src/data/restaurants.ts");
   const restaurantsSrc = fs.readFileSync(restaurantsPath, "utf8");
