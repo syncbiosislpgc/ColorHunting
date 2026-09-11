@@ -36,7 +36,7 @@ export function SessionSetupScreen({ game }: { game: GameController }) {
             <Button
               onClick={() => {
                 game.setPlayMode("together");
-                game.go("players");
+                game.go("food");
               }}
             >
               Juntos en un móvil 💞
@@ -82,7 +82,7 @@ export function SessionSetupScreen({ game }: { game: GameController }) {
               <Button
                 onClick={() => {
                   game.setPlayMode("twoPhones");
-                  game.go("players");
+                  game.go("food");
                 }}
               >
                 Seguir como anfitrión 💘

@@ -268,7 +268,7 @@ export function useGame() {
         localPlayer,
         restaurantId,
       });
-      fresh.screen = "players";
+      fresh.screen = "food";
       setState(fresh);
       setSavedExists(false);
     },

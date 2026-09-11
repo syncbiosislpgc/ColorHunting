@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/Button";
 import { ScreenShell } from "@/components/ui/ScreenShell";
 import type { GameController } from "@/hooks/useGame";
-import { whoAmILove } from "@/lib/utils/loveCopy";
 import type { PlayerId } from "@/types";
 
 export function WhoAmIScreen({ game }: { game: GameController }) {
@@ -32,14 +31,12 @@ export function WhoAmIScreen({ game }: { game: GameController }) {
           >
             Soy Gabri 💙
           </Button>
-          <p className="text-center text-xs opacity-50">{whoAmILove("gabri")}</p>
           <Button
             className="!bg-[#ff8a6a] !text-[#1c1410]"
             onClick={() => pick("tati")}
           >
             Soy Tati 💖
           </Button>
-          <p className="text-center text-xs opacity-50">{whoAmILove("tati")}</p>
         </div>
 
         <div className="mt-auto pt-8">
