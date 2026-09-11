@@ -3,11 +3,19 @@
 import { Button } from "@/components/ui/Button";
 import { ScreenShell } from "@/components/ui/ScreenShell";
 import type { GameController } from "@/hooks/useGame";
+import { consumePendingJoinCode, peekPendingJoinCode } from "@/lib/utils/joinLink";
 import type { PlayerId } from "@/types";
 
 export function WhoAmIScreen({ game }: { game: GameController }) {
+  const hasJoinInvite = Boolean(peekPendingJoinCode());
+
   const pick = (player: PlayerId) => {
     game.setLocalPlayer(player);
+    const pending = consumePendingJoinCode();
+    if (pending) {
+      game.joinSession(pending, player);
+      return;
+    }
     game.go("sessionSetup");
   };
 
@@ -21,7 +29,9 @@ export function WhoAmIScreen({ game }: { game: GameController }) {
           ¿Quién eres?
         </h2>
         <p className="mt-3 text-sm opacity-65">
-          Elige tu nombre. Este móvil se queda contigo, con cariño.
+          {hasJoinInvite
+            ? "Te han invitado. Elige quién eres y entras a la misma aventura."
+            : "Elige tu nombre. Este móvil se queda contigo, con cariño."}
         </p>
 
         <div className="mt-10 flex flex-col gap-3">
@@ -41,7 +51,9 @@ export function WhoAmIScreen({ game }: { game: GameController }) {
 
         <div className="mt-auto pt-8">
           <p className="text-center text-xs opacity-45">
-            Luego podéis jugar en el mismo móvil o en dos, con las mismas pruebas.
+            {hasJoinInvite
+              ? "Después de elegir, entráis a la misma aventura automáticamente."
+              : "Luego podéis jugar en el mismo móvil o en dos, con las mismas pruebas."}
           </p>
         </div>
       </div>

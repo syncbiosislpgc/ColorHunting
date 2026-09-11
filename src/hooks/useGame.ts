@@ -245,7 +245,7 @@ export function useGame() {
   );
 
   const joinSession = useCallback(
-    (rawCode: string) => {
+    (rawCode: string, localPlayerOverride?: PlayerId | null) => {
       const { sessionCode, restaurantId } = unpackSharePayload(rawCode);
       if (!sessionCode) return;
       const names = {
@@ -258,7 +258,8 @@ export function useGame() {
           loadSavedNames()?.tati ||
           DEFAULT_PLAYER_NAMES.tati,
       };
-      const localPlayer = state?.localPlayer ?? null;
+      const localPlayer =
+        localPlayerOverride ?? state?.localPlayer ?? null;
       void clearAllPhotos();
       clearGameState();
       const fresh = createFreshGame(names, undefined, {

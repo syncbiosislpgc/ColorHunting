@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import {
   AlbumScreen,
@@ -24,9 +25,14 @@ import { SessionSetupScreen } from "@/components/screens/SessionSetupScreen";
 import { WelcomeScreen } from "@/components/screens/WelcomeScreen";
 import { WhoAmIScreen } from "@/components/screens/WhoAmIScreen";
 import { useGame } from "@/hooks/useGame";
+import { captureJoinFromUrl } from "@/lib/utils/joinLink";
 
 export function AdventureApp() {
   const game = useGame();
+
+  useEffect(() => {
+    captureJoinFromUrl();
+  }, []);
 
   if (!game.hydrated) {
     return (
@@ -38,7 +44,6 @@ export function AdventureApp() {
 
   const screen = game.state?.screen ?? "welcome";
 
-  // Welcome can show without state (continue / new)
   if (!game.state || screen === "welcome") {
     return <WelcomeScreen game={game} />;
   }
