@@ -33,41 +33,36 @@ export function FoodRouletteScreen({ game }: { game: GameController }) {
   const [shared, setShared] = useState(false);
 
   const twoPhonesGuest = s.playMode === "twoPhones" && !s.isHost;
+  const isHostWaiting = s.playMode === "twoPhones" && s.isHost;
 
-  if (s.playMode === "twoPhones" && s.isHost) {
-    return null;
-  }
+  const partnerName = useMemo(() => {
+    if (!s.localPlayer) return "el anfitrión";
+    return s.localPlayer === "gabri" ? s.players.tati.name : s.players.gabri.name;
+  }, [s.localPlayer, s.players.gabri.name, s.players.tati.name]);
 
-  const items = available.map((r) => ({
-    id: r.id,
-    label: r.name,
-    color: undefined as string | undefined,
-  }));
-
-  const palette = [
-    "#ff8a6a",
-    "#2a9d8f",
-    "#f4a261",
-    "#e76f51",
-    "#264653",
-    "#e9c46a",
-    "#9b5de5",
-    "#00bbf9",
-  ];
-  items.forEach((item, i) => {
-    item.color = palette[i % palette.length];
-  });
+  const items = useMemo(() => {
+    const palette = [
+      "#ff8a6a",
+      "#2a9d8f",
+      "#f4a261",
+      "#e76f51",
+      "#264653",
+      "#e9c46a",
+      "#9b5de5",
+      "#00bbf9",
+    ];
+    return available.map((r, i) => ({
+      id: r.id,
+      label: r.name,
+      color: palette[i % palette.length],
+    }));
+  }, [available]);
 
   const result = RESTAURANTS.find((r) => r.id === resultId);
   const shareCode = resultId
     ? packSharePayload(s.sessionCode, resultId)
     : packSharePayload(s.sessionCode);
   const shareUrl = buildJoinUrl(shareCode);
-
-  const partnerName = useMemo(() => {
-    if (!s.localPlayer) return "el anfitrión";
-    return s.localPlayer === "gabri" ? s.players.tati.name : s.players.gabri.name;
-  }, [s]);
 
   const spin = () => {
     if (spinning || available.length === 0) return;
@@ -90,6 +85,10 @@ export function FoodRouletteScreen({ game }: { game: GameController }) {
     }
     goNext();
   };
+
+  if (isHostWaiting) {
+    return null;
+  }
 
   if (shared && result) {
     return (
